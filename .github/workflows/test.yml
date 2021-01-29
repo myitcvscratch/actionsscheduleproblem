@@ -1,0 +1,46 @@
+on: [repository_dispatch]
+name: Test
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Pause
+      run: sleep ${{ github.event.client_payload.phase }}m
+    - name: Create file
+      run: |
+        set -x
+        git config --global user.email example@myitcv.io
+        git config --global user.name "Example"
+        touch "$(date +%Y-%m-%d-%H%M%s)-${{ github.event.client_payload.phase }}.${{ matrix.instance }}.txt"
+        git add -A
+        git commit -am 'Phase ${{ github.event.client_payload.phase }}.${{ matrix.instance }} commit'
+        while ! git push
+        do
+          git fetch origin
+          git rebase --onto=origin/main HEAD~1
+        done
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Create finish file
+      run: |
+        set -x
+        git config --global user.email example@myitcv.io
+        git config --global user.name "Example"
+        touch "finished-${{ github.event.client_payload.phase }}.txt"
+        git add -A
+        git commit -am 'Finished phase ${{ github.event.client_payload.phase }} commit'
+        while ! git push
+        do
+          git fetch origin
+          git rebase --onto=origin/main HEAD~1
+        done
